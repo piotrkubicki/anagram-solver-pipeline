@@ -42,3 +42,15 @@ func TestMapWords(t *testing.T) {
 		t.Fatalf("mapWords: %v different than %v!", actual, expected)
 	}
 }
+
+func TestWordLengthCombinationFinder(t *testing.T) {
+	wordLengths := []int{2, 4, 3}
+	targetLength := 10
+	maxWords := 3
+	outputChannel := make(chan []int)
+
+	actual := wordLengthCombinationFinder(wordLengths, targetLength, maxWords, outputChannel)
+	if actual == true {
+		t.Fatal("error")
+	}
+}
