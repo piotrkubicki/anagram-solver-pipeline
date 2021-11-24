@@ -44,6 +44,22 @@ func mapWords(reader *bufio.Reader) (map[int][]string, error) {
 	return wordsByLength, nil
 }
 
+func findMinMaxWordLength(dictionary map[int][]string) (int, int) {
+	minWordLength := 1000
+	maxWordLength := 0
+
+	for key := range dictionary {
+		if key < minWordLength {
+			minWordLength = key
+		}
+		if key > maxWordLength {
+			maxWordLength = key
+		}
+	}
+
+	return minWordLength, maxWordLength
+}
+
 func main() {
 	log.SetPrefix("anagram_solver: ")
 	log.SetFlags(0)
@@ -56,8 +72,20 @@ func main() {
 	}
 
 	reader := bufio.NewReader(file)
-	_, err = mapWords(reader)
+	dictionary, err := mapWords(reader)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	originalAnagram := "poultry outwits ants"
+	minWordLength, maxWordLength := findMinMaxWordLength(dictionary)
+	targetLength := 18
+	maxWords := 3
+	wordLengthPermutationChannel := make(chan []int)
+
+	go wordLengthPermutationGenerator.Generate(minWordLength, maxWordLength, targetLength, maxWords, wordLengthPermutationChannel)
+	for {
+		output := <-wordLengthPermutationChannel
+		log.Printf("Output: %v", output)
 	}
 }
