@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"github.com/piotrkubicki/anagram-solver-pipeline/word_length_permutation_generator"
 	"log"
 	"os"
 	"strings"
@@ -77,13 +78,13 @@ func main() {
 		log.Fatal(err)
 	}
 
-	originalAnagram := "poultry outwits ants"
+	// originalAnagram := "poultry outwits ants"
 	minWordLength, maxWordLength := findMinMaxWordLength(dictionary)
 	targetLength := 18
 	maxWords := 3
 	wordLengthPermutationChannel := make(chan []int)
 
-	go wordLengthPermutationGenerator.Generate(minWordLength, maxWordLength, targetLength, maxWords, wordLengthPermutationChannel)
+	go word_length_permutation_generator.Generate(minWordLength, maxWordLength, targetLength, maxWords, wordLengthPermutationChannel)
 	for {
 		output := <-wordLengthPermutationChannel
 		log.Printf("Output: %v", output)

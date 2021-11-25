@@ -1,4 +1,4 @@
-package wordLengthPermutationGenerator
+package word_length_permutation_generator
 
 import (
 	"fmt"
