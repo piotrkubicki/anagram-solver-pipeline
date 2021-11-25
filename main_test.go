@@ -42,3 +42,45 @@ func TestMapWords(t *testing.T) {
 		t.Fatalf("mapWords: %v different than %v!", actual, expected)
 	}
 }
+
+func TestFindMinMaxWordLength(t *testing.T) {
+	cases := []struct {
+		dictionary  map[int][]string
+		expectedMin int
+		expectedMax int
+	}{
+		{
+			map[int][]string{
+				3: []string{"one", "two"},
+				4: []string{"four", "five", "zero"},
+				5: []string{"eight"},
+			},
+			3,
+			5,
+		},
+		{
+			map[int][]string{
+				1: []string{"a"},
+				3: []string{"one", "two"},
+				5: []string{"eight"},
+			},
+			1,
+			5,
+		},
+		{
+			map[int][]string{
+				3: []string{"one", "two"},
+			},
+			3,
+			3,
+		},
+	}
+
+	for _, tc := range cases {
+		actualMin, actualMax := findMinMaxWordLength(tc.dictionary)
+
+		if actualMin != tc.expectedMin && actualMax != tc.expectedMax {
+			t.Fatalf("Fail: actualMin: %v expectedMin: %v actualMax: %v expectedMax: %v", actualMin, tc.expectedMin, actualMax, tc.expectedMax)
+		}
+	}
+}
