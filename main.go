@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"github.com/piotrkubicki/anagram-solver-pipeline/permutation_generator"
 	"github.com/piotrkubicki/anagram-solver-pipeline/word_length_permutation_generator"
 	"log"
 	"os"
@@ -82,11 +83,16 @@ func main() {
 	minWordLength, maxWordLength := findMinMaxWordLength(dictionary)
 	targetLength := 18
 	maxWords := 3
-	wordLengthPermutationChannel := make(chan []int)
+	wordLengthPermutationChannel := make(chan []int, 5)
+	permutationsChannel := make(chan string, 10)
 
 	go word_length_permutation_generator.Generate(minWordLength, maxWordLength, targetLength, maxWords, wordLengthPermutationChannel)
+	for i := 0; i < 5; i++ {
+		go permutation_generator.Run(dictionary, wordLengthPermutationChannel, permutationsChannel)
+	}
+
 	for {
-		output := <-wordLengthPermutationChannel
-		log.Printf("Output: %v", output)
+		phrase := <-permutationsChannel
+		log.Printf("Phrase: %v", phrase)
 	}
 }
