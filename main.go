@@ -2,11 +2,13 @@ package main
 
 import (
 	"bufio"
+	"github.com/piotrkubicki/anagram-solver-pipeline/checker"
 	"github.com/piotrkubicki/anagram-solver-pipeline/permutation_generator"
 	"github.com/piotrkubicki/anagram-solver-pipeline/word_length_permutation_generator"
 	"log"
 	"os"
 	"strings"
+	"sync"
 )
 
 func cleanWord(word string) string {
@@ -81,18 +83,41 @@ func main() {
 
 	// originalAnagram := "poultry outwits ants"
 	minWordLength, maxWordLength := findMinMaxWordLength(dictionary)
+	minWordLength = 3
+	maxWordLength = 10
 	targetLength := 18
 	maxWords := 3
+	hashes := []string{
+		"e4820b45d2277f3844eac66c903e84be",
+		"23170acc097c24edb98fc5488ab033fe",
+		"665e5bcb0c20062fe8abaaf4628bb154",
+	}
+	passwords := []string{}
 	wordLengthPermutationChannel := make(chan []int, 5)
 	permutationsChannel := make(chan string, 10)
 
-	go word_length_permutation_generator.Generate(minWordLength, maxWordLength, targetLength, maxWords, wordLengthPermutationChannel)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		word_length_permutation_generator.Generate(minWordLength, maxWordLength, targetLength, maxWords, wordLengthPermutationChannel)
+	}()
+
 	for i := 0; i < 5; i++ {
-		go permutation_generator.Run(dictionary, wordLengthPermutationChannel, permutationsChannel)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			permutation_generator.Run(dictionary, wordLengthPermutationChannel, permutationsChannel)
+		}()
+	}
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			checker.Run(hashes, &passwords, permutationsChannel)
+		}()
 	}
 
-	for {
-		phrase := <-permutationsChannel
-		log.Printf("Phrase: %v", phrase)
-	}
+	wg.Wait()
+	log.Printf("Found passwords: %v", passwords)
 }

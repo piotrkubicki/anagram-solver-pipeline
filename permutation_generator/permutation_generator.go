@@ -1,6 +1,7 @@
 package permutation_generator
 
 import (
+	"log"
 	"strings"
 )
 
@@ -21,9 +22,11 @@ func generate(wordLists [][]string, words []string, outputChannel chan string) {
 func Run(dictionary map[int][]string, inputChannel chan []int, outputChannel chan string) {
 	for {
 		wordLengths := <-inputChannel
+
 		if len(wordLengths) == 0 {
 			break
 		}
+		log.Printf("Checking permutation: %v", wordLengths)
 		wordLists := [][]string{}
 		for _, length := range wordLengths {
 			words := make([]string, len(dictionary[length]))
@@ -31,6 +34,7 @@ func Run(dictionary map[int][]string, inputChannel chan []int, outputChannel cha
 			wordLists = append(wordLists, words)
 		}
 		generate(wordLists, []string{}, outputChannel)
+		log.Printf("Checking permutation %v done", wordLengths)
 	}
 	outputChannel <- ""
 }
