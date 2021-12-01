@@ -11,6 +11,23 @@ import (
 	"sync"
 )
 
+func mapWord(word string) map[rune]int {
+	chars := make(map[rune]int)
+
+	for _, char := range word {
+		if char == ' ' {
+			continue
+		}
+		if _, ok := chars[char]; ok {
+			chars[char]++
+		} else {
+			chars[char] = 1
+		}
+	}
+
+	return chars
+}
+
 func cleanWord(word string) string {
 	word = strings.TrimSuffix(word, "\n")
 	word = strings.Split(word, "'")[0]
@@ -18,7 +35,27 @@ func cleanWord(word string) string {
 	return word
 }
 
-func mapWords(reader *bufio.Reader) (map[int][]string, error) {
+func isValid(word string, allowedChars map[rune]int, minLength int, maxLength int) bool {
+	wordLength := len(word)
+	if wordLength < minLength || wordLength > maxLength {
+		return false
+	}
+
+	mappedWord := mapWord(word)
+
+	for key, val := range mappedWord {
+		if allowedCharsCount, ok := allowedChars[key]; ok {
+			if val > allowedCharsCount {
+				return false
+			}
+		} else {
+			return false
+		}
+	}
+	return true
+}
+
+func mapWords(reader *bufio.Reader, allowedCharacters map[rune]int, minLength int, maxLength int) (map[int][]string, error) {
 	wordsByLength := make(map[int][]string)
 	seenWords := make(map[string]bool)
 
@@ -34,13 +71,15 @@ func mapWords(reader *bufio.Reader) (map[int][]string, error) {
 
 		if lineLen > 0 {
 			if _, value := seenWords[cleanLine]; !value {
-				if val, ok := wordsByLength[lineLen]; ok {
-					val = append(val, cleanLine)
-					wordsByLength[lineLen] = val
-				} else {
-					wordsByLength[lineLen] = []string{cleanLine}
+				if isValid(cleanLine, allowedCharacters, minLength, maxLength) == true {
+					if val, ok := wordsByLength[lineLen]; ok {
+						val = append(val, cleanLine)
+						wordsByLength[lineLen] = val
+					} else {
+						wordsByLength[lineLen] = []string{cleanLine}
+					}
+					seenWords[cleanLine] = true
 				}
-				seenWords[cleanLine] = true
 			}
 		}
 	}
@@ -48,27 +87,13 @@ func mapWords(reader *bufio.Reader) (map[int][]string, error) {
 	return wordsByLength, nil
 }
 
-func findMinMaxWordLength(dictionary map[int][]string) (int, int) {
-	minWordLength := 1000
-	maxWordLength := 0
+func run(fileName string, phrase string, minChars int, maxChars int, maxWords int, targetLength int, hashes []string) {
+	passwords := []string{}
+	allowedChars := mapWord(phrase)
+	wordLengthPermutationChannel := make(chan []int, 35)
+	permutationsChannel := make(chan string, 1000)
 
-	for key := range dictionary {
-		if key < minWordLength {
-			minWordLength = key
-		}
-		if key > maxWordLength {
-			maxWordLength = key
-		}
-	}
-
-	return minWordLength, maxWordLength
-}
-
-func main() {
-	log.SetPrefix("anagram_solver: ")
-	log.SetFlags(0)
-
-	file, err := os.Open("wordlist")
+	file, err := os.Open(fileName)
 	defer file.Close()
 
 	if err != nil {
@@ -76,34 +101,19 @@ func main() {
 	}
 
 	reader := bufio.NewReader(file)
-	dictionary, err := mapWords(reader)
+	dictionary, err := mapWords(reader, allowedChars, minChars, maxChars)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	// originalAnagram := "poultry outwits ants"
-	minWordLength, maxWordLength := findMinMaxWordLength(dictionary)
-	minWordLength = 3
-	maxWordLength = 10
-	targetLength := 18
-	maxWords := 3
-	hashes := []string{
-		"e4820b45d2277f3844eac66c903e84be",
-		"23170acc097c24edb98fc5488ab033fe",
-		"665e5bcb0c20062fe8abaaf4628bb154",
-	}
-	passwords := []string{}
-	wordLengthPermutationChannel := make(chan []int, 5)
-	permutationsChannel := make(chan string, 10)
 
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		word_length_permutation_generator.Generate(minWordLength, maxWordLength, targetLength, maxWords, wordLengthPermutationChannel)
+		word_length_permutation_generator.Generate(minChars, maxChars, targetLength, maxWords, wordLengthPermutationChannel)
 	}()
 
-	for i := 0; i < 5; i++ {
+	for i := 0; i < 10; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -120,4 +130,22 @@ func main() {
 
 	wg.Wait()
 	log.Printf("Found passwords: %v", passwords)
+}
+
+func main() {
+	originalAnagram := "poultry outwits ants"
+	minWordLength := 2
+	maxWordLength := 15
+	targetLength := 18
+	maxWords := 4
+	hashes := []string{
+		"e4820b45d2277f3844eac66c903e84be",
+		"23170acc097c24edb98fc5488ab033fe",
+		"665e5bcb0c20062fe8abaaf4628bb154",
+	}
+
+	log.SetPrefix("anagram_solver: ")
+	log.SetFlags(0)
+
+	run("wordlist", originalAnagram, minWordLength, maxWordLength, maxWords, targetLength, hashes)
 }
